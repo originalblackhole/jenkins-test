@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: jenkins-test
+
+
+server:
+  port: 7777
+
