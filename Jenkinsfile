@@ -9,7 +9,7 @@ pipeline {
                 }
             }
             steps {
-                git 'https://github.com/originalblackhole/jenkins-test.git'
+                //我这里配置在jenkins上了  git 'https://github.com/originalblackhole/jenkins-test.git'
                 sh 'mvn -B -DskipTests clean package'
             }
         }
