@@ -7,12 +7,12 @@ node {
         sh 'mvn -B -DskipTests clean package'
     }
 
-    stage('Example') {
+    stage('docker build') {
         def customImage = docker.build("jenkins-test:${env.BUILD_ID}")
         sh "echo ${env.BUILD_ID}"
     }
 
-    stage(deploy) {
+    stage("deploy") {
         sh "pwd"
         sh ' ./deploy.sh'
     }
