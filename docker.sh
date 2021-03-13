@@ -13,10 +13,12 @@ IID=$(docker images | grep "$SERVER_NAME" | awk '{print $3}')
 if [ -n "$CID" ] ;then
 	echo "存在$SERVER_NAME容器，CID=$CID"
 	docker stop $SERVER_NAME
-	docker rm $SERVER_NAME
+#	docker rm $SERVER_NAME
+	docker rm jenkins-test
 fi
 #docker run -u root --rm -d -p 7777:7777 --name $SERVER_NAME --privileged=true -v $BASE_PATH:$BASE_PATH jenkins/test:latest
-docker run -u root --rm -d -p 7777:7777 --name $SERVER_NAME --privileged=true  jenkins/test:latest
+#docker run -u root --rm -d -p 7777:7777 --name jenkins-test --privileged=true  jenkins/test:latest
+docker run --name jenkins-test -d -p 7777:7777 --privileged=true jenkins/test
 
 # 删除不运行的镜像
 docker rmi IID
