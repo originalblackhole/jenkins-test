@@ -14,6 +14,9 @@ node {
 
     stage('docker build') {
 
+        //删除镜像
+        sh 'chmod +x ./delete.sh'
+        sh ' ./delete.sh'
         //构建镜像
         def customImage = docker.build("jenkins-test:latest")
 
@@ -22,6 +25,7 @@ node {
     stage("deploy") {
 
         // 项目部署
+        sh 'chmod +x ./deploy.sh'
         sh ' ./deploy.sh'
 
     }
