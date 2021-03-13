@@ -1,7 +1,7 @@
 pipeline {
     agent any
     stages {
-        stage('Build') {
+        stage('check') {
             agent {
                 docker {
                     image 'maven:3-alpine'
@@ -14,14 +14,14 @@ pipeline {
             }
         }
 
-        stage('docker build'){
+        stage('build'){
             agent {
                 dockerfile {
                     filename 'Dockerfile'
                 }
             }
             steps {
-                sh "docker build -t jenkins/test:latest ."
+                sh " ./build.sh"
             }
         }
 
