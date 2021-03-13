@@ -1,34 +1,19 @@
-pipeline {
-    agent any
-    stages {
-        stage('check') {
-            agent {
-                docker {
-                    image 'maven:3-alpine'
-                    args '-v /root/.m2:/root/.m2'
-                }
-            }
-            steps {
-                //我这里配置在jenkins上了  git 'https://github.com/originalblackhole/jenkins-test.git'
-                sh 'mvn -B -DskipTests clean package'
-            }
-        }
+node {
+    //定义mvn环境
+    def mvnHome = tool 'M3'
+    env.PATH = "${mvnHome}/bin:${env.PATH}"
+    stage('build') {
+        checkout scm
+        sh 'mvn -B -DskipTests clean package'
+    }
 
-        stage('build'){
-            agent {
-                dockerfile {
-                    filename 'Dockerfile'
-                }
-            }
-            steps {
-                sh " ./build.sh"
-            }
-        }
+    stage('Example') {
+        def customImage = docker.build("jenkins-test:${env.BUILD_ID}")
+        sh "echo ${env.BUILD_ID}"
+    }
 
-        stage('deploy'){
-            steps {
-                sh ' ./docker.sh'
-            }
-        }
+    stage(deploy) {
+        sh "pwd"
+        sh ' ./deploy.sh'
     }
 }
