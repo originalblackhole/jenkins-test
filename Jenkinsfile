@@ -6,6 +6,7 @@ node {
 
     stage('build') {
 
+        // 打包源码
         checkout scm
         sh 'mvn -B -DskipTests clean package'
 
@@ -13,10 +14,6 @@ node {
 
     stage('docker build') {
 
-        // 停止容器
-        sh "docker stop $(docker ps | grep jenkins-test | awk '{print $1}')"
-        // 删除旧镜像
-        sh "docker rmi $(docker images | grep jenkins-test | awk '{print $1}')"
         //构建镜像
         def customImage = docker.build("jenkins-test:latest")
 
@@ -24,6 +21,7 @@ node {
 
     stage("deploy") {
 
+        // 项目部署
         sh ' ./deploy.sh'
 
     }
