@@ -9,6 +9,6 @@ public class TestController {
 
     @RequestMapping("hello")
     public String hello(){
-        return "明天会更好！";
+        return "明天肯定会更好！";
     }
 }
