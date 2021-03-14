@@ -8,7 +8,7 @@ fi
 
 
 # 删除旧镜像
-IID=$(docker images | grep "$SERVER_NAME" | awk '{print $3}')
+IID=$(docker images | grep jenkins-test | awk '{print $3}')
 if [ -n "$IID" ] ;then
     docker rmi $IID
 fi
