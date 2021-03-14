@@ -1,4 +1,10 @@
-# 工程简介
+# jenkins-test [![Build Status](https://travis-ci.org/github/maven-plugins.svg)](https://travis-ci.org/github/maven-plugins)
+Example of assembly [jenkins](https://www.jenkins.io/zh/doc/) 
+[docker](https://www.runoob.com/docker/docker-tutorial.html)
+pipeline build deployment project
 
-# 延伸阅读
+## jenkins Configuration
+
+
+
 
