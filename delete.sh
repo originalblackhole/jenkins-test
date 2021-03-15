@@ -13,3 +13,9 @@ IID=$(docker images | grep jenkins-test | awk '{print $3}')
 if [ -n "$IID" ] ;then
     docker rmi $IID
 fi
+
+#sh 'docker rmi ccr.ccs.tencentyun.com/blackhole/jenkins-test'
+#AIID=$(docker images | grep jenkins-test | awk '{print $3}')
+#if [ -n "$IID" ] ;then
+#    docker rmi $IID
+#fi
