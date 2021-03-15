@@ -52,7 +52,6 @@ node {
 
                 env.registryName = obj.registryName
                 def envConifg = obj.env[env.PRO_ENV]
-
                 echo "envConifg: ${envConifg}"
 
                 env.VERSION = obj.version
@@ -78,13 +77,7 @@ node {
 
         stage('build'){
 
-            //删除旧的镜像
-            //sh 'docker rmi ccr.ccs.tencentyun.com/blackhole/jenkins-test'
-            //sh 'chmod +x ./delete.sh'
-            //sh ' ./delete.sh'
-
             // 构建上传镜像到容器仓库
-            //def customImage = docker.build("blackhole/jenkins-test:latest")
             sh 'echo $(imageName)'
             sh 'echo $(env)'
             def customImage = docker.build(imageName, " --build-arg pro_env=${env.PRO_ENV} .")
@@ -104,26 +97,53 @@ node {
                     def remote = [:]
                     remote.name = 'ssh-deploy'
                     remote.allowAnyHosts = true
-                    remote.host = env.host
-                    remote.user = USER
-                    remote.password = PWD
+                    remote.host =  '1.15.123.16' //env.host
+                    remote.user = 'root' //USER
+                    remote.password = 'gm152688..'  //PWD
+
+                    //sshCommand remote: remote, command: "ifconfig |grep inet"
                 
                     if(env.PRO_ENV == "pro") {
                         otherArgs = '-p 8888:8888'
                     }
 
+                    /* docker.withServer("tcp://192.168.3.63:2345", env.credentialsId){
+                        //sh "docker rm \$(docker stop \$(docker ps -a | grep jenkins-test | awk '{print \$1}'))"
+                        //docker.image(imageName).pull()
+                        //docker.image(imageName).run('-p 8088:7777 --name jenkins-test -d')
+                        //docker.image(imageName).run('docker ps -a')
+                        sh 'docker ps -a'
+                    } */
+
                     try {
-                        sshCommand remote: remote, command: "docker stop jenkins-test"
-                        sshCommand remote: remote, command: "docker rm -f jenkins-test"
-                        sh 'echo $(env)'
+                        sshCommand remote: remote, command: "docker rm $(docker stop $(docker ps -a | grep jenkins-test | awk '{print $1}'))"
+
+                        //sudo docker login --username=100018063721 ccr.ccs.tencentyun.com
+                        sshCommand remote: remote, command: "docker login -u 100018063721 -p gm152688 ccr.ccs.tencentyun.com"
+                        sshCommand remote: remote, command: "docker pull $imageName"
+
                     } catch (err) {
 
                     }
+
                     sshCommand remote: remote, command: "docker run -d --name jenkins-test -v /var/jenkins/jenkins-test:/var/jenkins/jenkins-test -e PRO_ENV='${env.PRO_ENV}' ${otherArgs} ${imageName}"
                 }
+            }else{
+                try {
+                    sh "docker rm \$(docker stop \$(docker ps -a | grep jenkins-test | awk '{print \$1}'))"
+                    docker.image(imageName).run('-p 8080:7777 --name jenkins-test -d')
+                } catch (err) {
 
-                // 删除旧的镜像
-                sh "docker rmi -f ${imageName.replaceAll("_${BUILD_NUMBER}", "_${BUILD_NUMBER - 1}")}"
+                }
+            }
+        }
+        stage('delete'){
+            // 删除旧的镜像
+            try {
+                //docker rmi $(docker images | grep ccr.ccs.tencentyun.com/blackhole/jenkins-test | awk '{print $3}')
+                sh "docker rmi -f ${imageName.replaceAll("_${BUILD_NUMBER}", "_${BUILD_NUMBER.toInteger() - 1}")}"
+            } catch (err) {
+
             }
         }
     }

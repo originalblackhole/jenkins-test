@@ -3,9 +3,9 @@ FROM hub.c.163.com/wuxukun/maven-aliyun:3-jdk-8
 # 指定当前操作目录
 WORKDIR /var/jenkins/jenkins-test
 
-RUN yum update -y
+#RUN yum update -y
 
-RUN yum install vim -y
+#RUN yum install vim -y
 
 #指定对外端口号
 EXPOSE 7777

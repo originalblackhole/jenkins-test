@@ -5,6 +5,6 @@ pipeline build deployment project
 
 ## jenkins Configuration
 
-
+需要装SSH Pipeline Steps 插件
 
 
