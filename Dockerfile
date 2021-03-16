@@ -7,6 +7,8 @@ WORKDIR /var/jenkins/jenkins-test
 
 #RUN yum install vim -y
 
+ARG PRO_ENV=prod
+
 #指定对外端口号
 EXPOSE 7777
 ADD ./target/jenkins-test-0.0.1-SNAPSHOT.jar app.jar
