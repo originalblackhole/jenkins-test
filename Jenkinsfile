@@ -47,11 +47,22 @@ node {
         
         stage('package') {
 
+            // checkout测试时使用,jenkins上面直接使用SCM
+            // checkout([$class: 'GitSCM', branches: [[name: '*/dev']], extensions: [], userRemoteConfigs: [[credentialsId: 'e761309f-146f-4c5f-b7fd-1debf91fef38', url: 'https://gitee.com/original-blackhole/jenkins-test.git']]])
+            withEnv(["MVN_HOME=$mvnHome"]) {
+                if (isUnix()) {
+                    sh 'mvn -B -DskipTests clean package'
+                } else {
+                    bat(/mvn -B -DskipTests clean package/)
+                }
+            }
+
             // 读取配置信息
             if(fileExists('config.json')) {
                 def str = readFile 'config.json'
                 def jsonSlurper = new JsonSlurper()
                 def obj = jsonSlurper.parseText(str)
+                echo "config.json: ${str}"
 
                 env.registryName = obj.registryName
                 def envConifg = obj.env[env.PRO_ENV]
@@ -66,16 +77,6 @@ node {
 
                 imageName = "${env.registryName}:${env.VERSION}_${env.PRO_ENV}_${BUILD_NUMBER}"
                 echo "VERSION: ${env.VERSION} ,imageName: ${imageName}"
-            }
-
-            // checkout测试时使用,jenkins上面直接使用SCM
-            // checkout([$class: 'GitSCM', branches: [[name: '*/dev']], extensions: [], userRemoteConfigs: [[credentialsId: 'e761309f-146f-4c5f-b7fd-1debf91fef38', url: 'https://gitee.com/original-blackhole/jenkins-test.git']]])
-            withEnv(["MVN_HOME=$mvnHome"]) {
-                if (isUnix()) {
-                    sh 'mvn -B -DskipTests clean package'
-                } else {
-                    bat(/mvn -B -DskipTests clean package/)
-                }
             }
         }
 
