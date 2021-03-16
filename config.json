@@ -1,6 +1,7 @@
 {
   "version": "1.0.0",
   "registryName": "ccr.ccs.tencentyun.com/blackhole/jenkins-test",
+  "registry_credentials_id": "ccr.ccs.tencentyun.com/blackhole/jenkins-test",
   "env": {
     "dev": {
       "name":"jenkins-test",
