@@ -13,7 +13,7 @@
       "host": "192.168.3.63",
       "port": "7777"
     },
-    "pro": {
+    "prod": {
       "credentialsId": "02f1c758-a98c-4d2e-8ef2-d45f87fe4937",
       "host": "1.15.123.16",
       "port": "7777"

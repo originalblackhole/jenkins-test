@@ -7,4 +7,6 @@ pipeline build deployment project
 
 需要装SSH Pipeline Steps 插件
 
+需要使用变量的地方记得使用“ ”来代替‘ ’
+
 

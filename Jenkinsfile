@@ -40,7 +40,7 @@ node {
                 env.PRO_ENV = "test"
             }
             if (inputResult.deploy) {
-                env.PRO_ENV = "deploy"
+                env.PRO_ENV = "prod"
             }
             sh 'env $env'
         }
@@ -96,15 +96,14 @@ node {
             if(inputResult.dev) {
 
                 // 本地部署
-                echo 'start local deploy'
+                echo "start local deploy, host: ${env.host}"
                 try {
                     // 停止删除容器
                     // sh "docker rm \$(docker stop \$(docker ps -a | grep ${projectName} | awk '{print \$1}'))"  //没有容器时会报错
                     // 停止容器
-                    sh "n='docker ps -a | grep ${projectName} | wc -l'; if [ \$n -gt 0 ]; then docker stop \$(docker ps -a | grep ${projectName} | awk '{print \$1}');fi"
+                    sh "docker stop ${projectName}"   //TODO 没有容器时会报错 但是不影响执行流程先不改了
                     // 删除容器
-                    sh "n='docker ps -a | grep ${projectName} | wc -l'; if [ \$n -gt 0 ]; then docker rm \$(docker ps -a | grep ${projectName} | awk '{print \$1}');fi"
-
+                    sh "docker rm ${projectName}"
                 } catch (err) {}
                 // 启动容器
                 def serverArgs = "-p ${env.port}:${openPort} --name ${projectName}"
@@ -113,6 +112,7 @@ node {
                 echo 'deploy finish'
             }else{
                 // 远程服务器部署
+                echo "start remote deploy, host: ${env.host}"
                 // ansiColor('xterm') {
                 docker.withRegistry("https://${env.registryName}", env.registry_credentials_id){
 
@@ -140,7 +140,7 @@ node {
                         echo 'serverArgs: ${serverArgs} ${otherArgs} ${imageName}'
 
                         // 启动容器
-                        sshCommand remote: remote, command: "${serverArgs} ${otherArgs} $imageName}"
+                        sshCommand remote: sshServer, command: "${serverArgs} ${otherArgs} $imageName}"
 
                         // 删除远程服务器的上两个版本镜像(只保留最新的两个版本镜像)
                         sshCommand remote: sshServer, command: "docker rmi -f ${imageName.replaceAll("_${BUILD_NUMBER}", "_${BUILD_NUMBER.toInteger() - 1}")}"
