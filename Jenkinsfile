@@ -9,18 +9,18 @@ node {
     def workDir = '/var/jenkins/jenkins-test'         // 容器目录(Dockerfile中的WORKDIR目录)
     def openPort = '7777'                             // 开发的端口(Dockerfile中的EXPOSE,使用该端口映射)
     def otherArgs = "--name ${projectName}"           // 自定义其他启动参数(默认启动参数格式为: docker run -d -p 8080:8080 -e pro_env=dev)
-    def mvnCMD = "mvn -B -DskipTests clean package"   // maven打包命令
+    def mvnCMD = "mvn -B -DskipTests clean package"   // maven打包命令 暂时先不用这个字段
 
 
     // 系统变量
     def imageName = ''
     def inputResult // 用户输入项
-    def inputImage // 用户输入项
     def mvnHome = tool 'M3'
     env.host = ''
+    env.VERSION = '1.0.0'
     env.registryName = ''
     env.credentialsId = ''
-    env.VERSION = '1.0.0'
+    env.registry_credentials_id = ''
     env.PATH = "${mvnHome}/bin:${env.PATH}"
     currentBuild.result = "SUCCESS"
 
@@ -30,18 +30,8 @@ node {
             inputResult = input message: '请选择部署环境', ok: '确认', parameters: [
                 booleanParam(name: 'dev', defaultValue: true),
                 booleanParam(name: 'test', defaultValue: false),
-                booleanParam(name: 'deploy', defaultValue: false)
-
-//                 booleanParam(name: '192.168.3.165-dev', defaultValue: true),
-//                 booleanParam(name: '192.168.3.63-test', defaultValue: false),
-//                 booleanParam(name: '1.15.123.16-deploy', defaultValue: false)
+                booleanParam(name: 'prod', defaultValue: false)
             ]
-
-            inputImage = input message: '推送镜像至仓库并部署', ok: '确认', parameters: [
-                booleanParam(name: 'push', defaultValue: true),
-                booleanParam(name: 'deploy', defaultValue: false)
-            ]
-
             // 判断发布环境
             if (inputResult.dev) {
                 env.PRO_ENV = "dev"
@@ -52,8 +42,7 @@ node {
             if (inputResult.deploy) {
                 env.PRO_ENV = "deploy"
             }
-            echo "Branch: ${env.BRANCH_NAME}, Environment: ${env.PRO_ENV}"
-            sh 'echo $env'
+            sh 'env $env'
         }
         
         stage('package') {
@@ -70,22 +59,22 @@ node {
 
                 env.VERSION = obj.version
                 env.credentialsId = envConifg.credentialsId
+                env.registry_credentials_id = envConifg.registry_credentials_id
                 env.host = envConifg.host
                 env.port = envConifg.port
                 env.name = envConifg.name
 
                 imageName = "${env.registryName}:${env.VERSION}_${env.PRO_ENV}_${BUILD_NUMBER}"
-
-                echo "VERSION: ${env.VERSION} ${imageName}"
+                echo "VERSION: ${env.VERSION} ,imageName: ${imageName}"
             }
 
             // checkout测试时使用,jenkins上面直接使用SCM
             // checkout([$class: 'GitSCM', branches: [[name: '*/dev']], extensions: [], userRemoteConfigs: [[credentialsId: 'e761309f-146f-4c5f-b7fd-1debf91fef38', url: 'https://gitee.com/original-blackhole/jenkins-test.git']]])
             withEnv(["MVN_HOME=$mvnHome"]) {
                 if (isUnix()) {
-                    sh '$mvnCMD'
+                    sh 'mvn -B -DskipTests clean package'
                 } else {
-                    bat(/$mvnCMD/)
+                    bat(/mvn -B -DskipTests clean package/)
                 }
             }
         }
@@ -93,29 +82,46 @@ node {
         stage('build'){
 
             // 构建镜像并上传到容器仓库
-            sh 'echo $imageName'
-            sh 'echo $(env)'
+            echo "imageName: ${imageName}"
             def customImage = docker.build(imageName, " --build-arg pro_env=${env.PRO_ENV} .")
-            if(inputImage.push) {
+            if(!(inputResult.dev)) {
                 docker.withRegistry("https://${env.registryName}", env.registry_credentials_id) {
                     customImage.push()
                 }
             }
+            sh 'env $env'
         }
 
         stage('Deploy'){
-            if(inputImage.deploy) {
+            if(inputResult.dev) {
 
+                // 本地部署
+                echo 'start local deploy'
+                try {
+                    // 停止删除容器
+                    // sh "docker rm \$(docker stop \$(docker ps -a | grep ${projectName} | awk '{print \$1}'))"  //没有容器时会报错
+                    // 停止容器
+                    sh "n='docker ps -a | grep ${projectName} | wc -l'; if [ \$n -gt 0 ]; then docker stop \$(docker ps -a | grep ${projectName} | awk '{print \$1}');fi"
+                    // 删除容器
+                    sh "n='docker ps -a | grep ${projectName} | wc -l'; if [ \$n -gt 0 ]; then docker rm \$(docker ps -a | grep ${projectName} | awk '{print \$1}');fi"
+
+                } catch (err) {}
+                // 启动容器
+                def serverArgs = "-p ${env.port}:${openPort} --name ${projectName}"
+                echo "serverArgs: docker run -d ${serverArgs}"
+                docker.image(imageName).run("${serverArgs}")
+                echo 'deploy finish'
+            }else{
                 // 远程服务器部署
                 // ansiColor('xterm') {
                 docker.withRegistry("https://${env.registryName}", env.registry_credentials_id){
 
                     // 部署集群
                     //for (item in ipList.tokenize(',')){
-                        def sshServer = getServer(env.host)
+                        def sshServer = getServer(env.credentialsId,env.host,false)
 
                         // 更新或下载镜像
-                        sshCommand remote: sshServer, command: "docker pull $imageName"
+                        sshCommand remote: sshServer, command: "docker pull ${imageName}"
 
                         try{
                             // 停止容器
@@ -131,13 +137,13 @@ node {
                         if(appointWorkDir){
                             serverArgs = "${serverArgs} -v ${hostWorkDir}:${openPort}"
                         }
-                        sh 'echo $serverArgs $otherArgs $imageName'
+                        echo 'serverArgs: ${serverArgs} ${otherArgs} ${imageName}'
 
                         // 启动容器
-                        sshCommand remote: remote, command: "$serverArgs $otherArgs $imageName"
+                        sshCommand remote: remote, command: "${serverArgs} ${otherArgs} $imageName}"
 
                         // 删除远程服务器的上两个版本镜像(只保留最新的两个版本镜像)
-                        sshCommand remote: sshServer, command: "docker rmi -f ${imageName.replaceAll("_${BUILD_NUMBER}", "_${BUILD_NUMBER.toInteger() - 2}")}"
+                        sshCommand remote: sshServer, command: "docker rmi -f ${imageName.replaceAll("_${BUILD_NUMBER}", "_${BUILD_NUMBER.toInteger() - 1}")}"
                         // 清理none镜像
                         // def clearNoneSSH = "n=`docker images | grep  '<none>' | wc -l`; if [ \$n -gt 0 ]; then docker rmi `docker images | grep  '<none>' | awk '{print \$3}'`; fi"
                         // sshCommand remote: sshServer, command: "${clearNoneSSH}"
@@ -146,20 +152,13 @@ node {
 
 
                 }
-                //}
-            }else{
-                // 本地部署
-                try {
-                    // 停止删除旧容器并启动
-                    sh "docker rm \$(docker stop \$(docker ps -a | grep ${projectName} | awk '{print \$1}'))"
-                    docker.image(imageName).run('-p ${env.port}:${openPort} --name ${projectName} -d')
-                } catch (err) {}
+              //}
             }
         }
         stage('delete'){
             // 删除本服务器的上两个版本镜像(只保留最新的两个版本镜像)
             try {
-                sh "docker rmi -f ${imageName.replaceAll("_${BUILD_NUMBER}", "_${BUILD_NUMBER.toInteger() - 2}")}"
+                sh "docker rmi -f ${imageName.replaceAll("_${BUILD_NUMBER}", "_${BUILD_NUMBER.toInteger() - 1}")}"
             } catch (err) {}
         }
     }
@@ -175,8 +174,23 @@ def getServer(ip){
     remote.host = ip
     remote.port = 22
     remote.allowAnyHosts = true
-    withCredentials([usernamePassword(credentialsId: 'ServiceServer', passwordVariable: 'password', usernameVariable: 'userName')]) {
+    withCredentials([usernamePassword(credentialsId: '8a0eadde-27ec-424f-97e3-aefcf54e5caf', passwordVariable: 'password', usernameVariable: 'userName')]) {
     //withCredentials([sshUserPrivateKey(credentialsId: 'ServiceServer', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+        remote.user = "${userName}"
+        remote.password = "${password}"
+    }
+    return remote
+}
+def getServer(credentialsId,ip,port){
+    def remote = [:]
+    remote.name = "server-${ip}"
+    remote.host = ip
+    remote.port = 22
+    remote.allowAnyHosts = true
+    if(port){
+        remote.port = port
+    }
+    withCredentials([usernamePassword(credentialsId: credentialsId, passwordVariable: 'password', usernameVariable: 'userName')]) {
         remote.user = "${userName}"
         remote.password = "${password}"
     }

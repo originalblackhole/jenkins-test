@@ -4,22 +4,19 @@
   "registry_credentials_id": "a5613adf-a89a-443e-932c-d31dff210b76",
   "env": {
     "dev": {
-      "name":"jenkins-test",
-      "credentialsId": "8a0eadde-27ec-424f-97e3-aefcf54e5caf",
-      "host": "192.168.3.63",
-      "port": "8080"
+      "credentialsId": "f4484dff-b085-4332-81dd-e3bc225e696c",
+      "host": "192.168.3.165",
+      "port": "7777"
     },
     "test": {
-      "name":"server-eureka",
       "credentialsId": "8a0eadde-27ec-424f-97e3-aefcf54e5caf",
       "host": "192.168.3.63",
-      "port": "8761"
+      "port": "7777"
     },
     "pro": {
-      "name":"server-config",
-      "credentialsId": "f4484dff-b085-4332-81dd-e3bc225e696c",
-      "host": "192.168.3.151",
-      "port": "8888"
+      "credentialsId": "02f1c758-a98c-4d2e-8ef2-d45f87fe4937",
+      "host": "1.15.123.16",
+      "port": "7777"
     }
   }
 }
